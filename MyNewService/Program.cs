@@ -14,13 +14,18 @@ namespace MyNewService
         /// </summary>
         static void Main(string[] args)
         {
-            System.Threading.Thread.Sleep(20000);
+#if (!DEBUG)
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
                 new MyNewService(args)
             };
             ServiceBase.Run(ServicesToRun);
+#else
+            MyNewService myServ = new MyNewService();
+            myServ.StartVboxVM();
+            myServ.StopVboxVm();
+#endif
         }
     }
 }
