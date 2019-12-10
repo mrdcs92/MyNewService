@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Configuration;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
@@ -49,6 +51,12 @@ namespace MyNewService
         {
             eventLog1.WriteEntry("In OnStart");
             StartVboxVM();
+            ReadSetting("gppName");
+            ReadAllSettings();
+            AddUpdateAppSettings("gppName", "ohyea");
+            ReadAllSettings();
+            //eventLog1.WriteEntry("Attempting to find ova file");
+            //eventLog1.WriteEntry(FindOva());
             eventLog1.WriteEntry("StartVboxVM executed");
 
             Timer timer = new Timer
@@ -106,6 +114,86 @@ namespace MyNewService
 
             ExitCode = Process.ExitCode;
             Process.Close();
+        }
+
+        public string FindOva()
+        {
+            string currentDir = Directory.GetCurrentDirectory();
+            eventLog1.WriteEntry("current directory: " + currentDir);
+            var parentDir = Directory.GetParent(currentDir).ToString();
+            string gppDir = Path.Combine(parentDir, "testfolder");
+            if (Directory.Exists(gppDir))
+            {
+                List<string> fileNames = Directory
+                    .GetFiles(gppDir, "*.ova")
+                    .Select(fileName => Path.GetFileNameWithoutExtension(fileName))
+                    .ToList();
+                return fileNames[0];
+            }
+            return "";
+        }
+
+        public void AddUpdateAppSettings(string key, string value)
+        {
+            try
+            {
+                var configFile = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                var settings = configFile.AppSettings.Settings;
+                if (settings[key] == null)
+                {
+                    settings.Add(key, value);
+                }
+                else
+                {
+                    settings[key].Value = value;
+                }
+                configFile.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection(configFile.AppSettings.SectionInformation.Name);
+            }
+            catch (ConfigurationErrorsException)
+            {
+                eventLog1.WriteEntry("Error writing app settings");
+            }
+        }
+
+        public string ReadSetting(string key)
+        {
+            string result = "";
+            try
+            {
+                var appSettings = ConfigurationManager.AppSettings;
+                result = appSettings["gppName"] ?? "Not Found";
+                eventLog1.WriteEntry("This is the result of reading the appSettings: " + result);
+            }
+            catch (ConfigurationErrorsException)
+            {
+                Console.WriteLine("Error reading app settings");
+            }
+            return result;
+        }
+
+        public void ReadAllSettings()
+        {
+            try
+            {
+                var appSettings = ConfigurationManager.AppSettings;
+
+                if (appSettings.Count == 0)
+                {
+                    eventLog1.WriteEntry("AppSettings is empty.");
+                }
+                else
+                {
+                    foreach (var key in appSettings.AllKeys)
+                    {
+                        eventLog1.WriteEntry("Key: " + key + " Value: " + appSettings[key]);
+                    }
+                }
+            }
+            catch (ConfigurationErrorsException)
+            {
+                eventLog1.WriteEntry("Error reading app settings");
+            }
         }
 
     }

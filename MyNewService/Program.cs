@@ -24,6 +24,7 @@ namespace MyNewService
 #else
             MyNewService myServ = new MyNewService();
             myServ.StartVboxVM();
+            myServ.FindOva();
             myServ.StopVboxVm();
 #endif
         }
